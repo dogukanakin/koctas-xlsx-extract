@@ -1,6 +1,7 @@
 document.getElementById('generateButton').addEventListener('click', handleFile);
 document.getElementById('downloadButton').addEventListener('click', downloadExcel);
 
+// Özet verilerini tutacak global dizi
 let summaryData = [];
 
 function handleFile() {
@@ -9,6 +10,7 @@ function handleFile() {
     const warningDiv = document.getElementById('warning');
     
     if (file) {
+        // .xls formatı için uyarı göster
         if (file.name.endsWith('.xls')) {
             warningDiv.textContent = "Uyarı: .xls formatı kullanıyorsunuz. Bu format hatalı sonuçlara neden olabilir. Lütfen .xlsx formatını kullanın.";
             warningDiv.style.display = 'block';
@@ -16,6 +18,7 @@ function handleFile() {
             warningDiv.style.display = 'none';
         }
 
+        // Dosyayı oku ve işle
         const reader = new FileReader();
         reader.onload = function(e) {
             const data = new Uint8Array(e.target.result);
@@ -28,12 +31,15 @@ function handleFile() {
 }
 
 function processExcel(data) {
+    // Excel dosyasını oku
     const workbook = XLSX.read(data, {type: 'array'});
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     
+    // Excel verilerini JSON'a dönüştür
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 'A' });
 
+    // Verileri özetle
     const summary = jsonData.reduce((acc, row, index) => {
         if (index < 4) return acc; // Başlık satırlarını atla
         
@@ -52,6 +58,7 @@ function processExcel(data) {
         return acc;
     }, {});
 
+    // Genel toplamları hesapla ve özet veriyi oluştur
     let genelToplamMiktar = 0;
     let genelToplamTutar = 0;
     summaryData = Object.entries(summary)
@@ -62,6 +69,7 @@ function processExcel(data) {
             return { Urun: urun, ToplamMiktar: toplamMiktar, ToplamTutar: toplamTutar };
         });
 
+    // Genel toplamı ekle
     if (genelToplamMiktar > 0 || genelToplamTutar > 0) {
         summaryData.push({
             Urun: 'GENEL TOPLAM',
@@ -70,11 +78,13 @@ function processExcel(data) {
         });
     }
 
+    // Sonuçları göster ve indirme butonunu aktifleştir
     displayResults(summaryData);
     document.getElementById('downloadButton').style.display = 'block';
 }
 
 function displayResults(data) {
+    // Sonuçları HTML tablosuna dönüştür ve göster
     const resultDiv = document.getElementById('result');
     let html = '<table><tr><th>Ürün</th><th>Toplam Miktar</th><th>Toplam Tutar</th></tr>';
     
@@ -91,6 +101,7 @@ function displayResults(data) {
 }
 
 function downloadExcel() {
+    // Yeni bir Excel çalışma kitabı oluştur
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(summaryData.slice(0, -1)); // Genel toplamı hariç tut
 
@@ -132,6 +143,7 @@ function downloadExcel() {
         cell.s.font = { bold: true };
     });
 
+    // Excel dosyasını oluştur ve indir
     XLSX.utils.book_append_sheet(wb, ws, "Özet");
     XLSX.writeFile(wb, 'ozet-rapor.xlsx');
 }
